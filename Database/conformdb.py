@@ -54,22 +54,23 @@ class Conformdb:
 
     def __init__(self, user=""):
         self.User = user
-        self.Connection = pymysql.connect(user=dbuser, passwd=UserPassword, db=dbname)
+        self.Connection = pymysql.connect(user=dbuser, passwd=UserPassword, db=dbname, host="db")
         pymysql.paramstyle="format"
 
         # get user privs
         Cursor = self.Connection.cursor()
-        try:
-            Cursor.execute("SELECT userpriv,userwho FROM users WHERE username=%s",(user,))
-        except pymysql.err.Error as err:
-            self.Connection.rollback()
-            return (False, err.args[1])
+        Cursor.execute("SELECT userpriv,userwho FROM users WHERE username=%s",(user,))
+        #try:
+        #except pymysql.err.Error as err:
+        #    self.Connection.rollback()
+        #    print("Failed to get user privs: {0}".format(err.args[1]))
+        #    return (False, err.args[1])
         if Cursor.rowcount > 0:
             (self.UserPriv, self.UserWho) = Cursor.fetchone()
         else:
             self.UserPriv = ""
             self.UserWho = ""
-            
+
         # handle cloning
         # allow editing of cloned database
         if self.UserPriv and "Clone" in self.UserPriv:
@@ -107,7 +108,7 @@ class Conformdb:
 
     ### basedoc
     def listbasedoc(self, name=None, doctype=None):
-        """ get a list of base docs optionally by name 
+        """ get a list of base docs optionally by name
             returns (False, "reason")
             (True, [ dictofdocfields, ... ]) list of docs
         """
@@ -177,7 +178,7 @@ class Conformdb:
         if Cursor.rowcount > 1:
             return (False, "Ambiguous base document")
         basedoc = list(Cursor.fetchone())
-        
+
         # smash dates back into strings
         for fn in ("bdupdated","bdadded"):
             if fn in thenamelist:
@@ -348,7 +349,7 @@ class Conformdb:
             except pymysql.err.Error as err:
                 self.Connection.rollback()
                 return (False, err.args[1])
-        
+
             # archive and delete requirements, same deal
             sql = """CREATE TEMPORARY TABLE rseqno (SELECT rseqno FROM {0}basedoc NATURAL JOIN {0}requirement
                 WHERE bdseqno IN ({1}))""".format(self._prefix, ",".join(map(str,snlist)))
@@ -357,7 +358,7 @@ class Conformdb:
             except pymysql.err.Error as err:
                 self.Connection.rollback()
                 return (False, err.args[1])
-        
+
             sql = "INSERT INTO {0}requirement_history (SELECT * FROM {0}requirement WHERE rseqno IN (SELECT rseqno FROM rseqno))".format(self._prefix)
             try:
                 cur.execute(sql)
@@ -371,7 +372,7 @@ class Conformdb:
             except pymysql.err.Error as err:
                 self.Connection.rollback()
                 return (False, err.args[1])
-        
+
             # archive and delete base docs
             sql = "INSERT INTO {0}basedoc_history (SELECT * FROM {0}basedoc WHERE bdseqno IN ({1}))".format(self._prefix, ",".join(map(str,snlist)))
             try:
@@ -445,7 +446,7 @@ class Conformdb:
         thenamelist = [ d[0] for d in Cursor.description ]
         therecords = [ dict(zip(thenamelist, i)) for i in Cursor.fetchall() ]
         return (True, therecords)
-            
+
     def getrequirement(self, seqno=None):
         """ get requirements for a base doc
             returns (False, "reason")
@@ -466,14 +467,14 @@ class Conformdb:
 
         if Cursor.rowcount < 1:
             return (False, "No such requirement")
-        
+
         # smash dates into strings
         req = list(Cursor.fetchone())
         for fn in ("rupdated","radded"):
             if fn in thenamelist:
                 i = thenamelist.index(fn)
                 req[i] = req[i].isoformat(' ')
-        
+
         return (True, dict(zip(thenamelist, req)))
 
     def putrequirement(self, rseqno=None, bdseqno=None, rsameas=None, rstart=None, rlength=None, rtext=None,
@@ -538,7 +539,7 @@ class Conformdb:
         except pymysql.err.Error as err:
             self.Connection.rollback()
             if err.args[0] == 1062:
-                return (False, "Duplicate requirement range") # 
+                return (False, "Duplicate requirement range") #
             return (False, err.args[1])
 
         self.Connection.commit()
@@ -585,7 +586,7 @@ class Conformdb:
         self._updatearg("rcomment", uncr(rcomment))
         self._updatearg("rreplacedby", replacedby)
         self._updatearg("ruser", ruser)
-        
+
         if not self.sqlstr and not replaces:
             return (False, "Nothing to change")
         cur = self.Connection.cursor()
@@ -664,20 +665,20 @@ class Conformdb:
                 sql = """CREATE TEMPORARY TABLE tseqno (SELECT tseqno FROM {0}requirement NATURAL JOIN {0}tests
                      WHERE rseqno IN ({1}))""".format(self._prefix, ",".join(map(str,snlist)))
                 cur.execute(sql)
-               
+
                 sql = "INSERT INTO {0}tests_history (SELECT * FROM {0}tests WHERE tseqno IN (SELECT tseqno FROM tseqno))".format(self._prefix)
                 cur.execute(sql)
-               
+
                 sql = "DELETE FROM {0}tests WHERE tseqno IN (SELECT tseqno FROM tseqno)".format(self._prefix)
                 cur.execute(sql)
-               
+
                 # archive and delete requirements
                 sql = "INSERT INTO {0}requirement_history (SELECT * FROM {0}requirement WHERE rseqno IN ({1}))".format(self._prefix, ",".join(map(str,snlist)))
                 cur.execute(sql)
-               
+
                 sql = "DELETE FROM {0}requirement WHERE rseqno IN ({1})".format(self._prefix, ",".join(map(str,snlist)))
                 cur.execute(sql)
-               
+
                 cur.execute("DROP TEMPORARY TABLE tseqno")
             except pymysql.err.Error as err:
                 self.Connection.rollback()
@@ -689,7 +690,7 @@ class Conformdb:
         self.Connection.commit()
 
         return (True, snlist)
-        
+
     def getrequirementschema(self):
         """ return schema of requirement table
         mostly so console can automatically adapt the
@@ -739,7 +740,7 @@ class Conformdb:
         therecords = [ dict(zip(thenamelist, i)) for i in Cursor.fetchall() ]
 
         return (True, therecords)
-            
+
     def gettest(self, seqno=None):
         """ get a test
             returns (False, "reason")
@@ -761,14 +762,14 @@ class Conformdb:
         thenamelist = [ d[0] for d in Cursor.description ]
         if Cursor.rowcount < 1:
             return (False, "No such test")
-        
+
         # smash dates into strings
         test = list(Cursor.fetchone())
         for fn in ("tupdated","tadded"):
             if fn in thenamelist:
                 i = thenamelist.index(fn)
                 test[i] = test[i].isoformat(' ')
-        
+
         return (True, dict(zip(thenamelist, test)))
 
     def puttest(self, tseqno=None, rseqno=None, tsameas=None, ttext=None, tdut=None, tlscommand=None, toutcome=None, tneg=None,
@@ -872,7 +873,7 @@ class Conformdb:
         self._updatearg("tmasterfile", uncr(tmasterfile))
         self._updatearg("tuser", tuser)
         self._updatearg("treplacedby", replacedby)
-        
+
         if not self.sqlstr and not replaces:
             return (False, "Nothing to change")
 
@@ -1064,7 +1065,7 @@ class Conformdb:
                 return (False, err.args[1])
 
         if not snapshot:                # see if tables already populated
-            sql = "SELECT bdseqno FROM {0}basedoc LIMIT 1".format(self._prefix) 
+            sql = "SELECT bdseqno FROM {0}basedoc LIMIT 1".format(self._prefix)
             cur.execute(sql)
             if cur.rowcount <= 0:
                 snapshot = True         # clone is empty, need to populate it
@@ -1130,14 +1131,14 @@ class Conformdb:
                 return (False, "No such prefix.")
             self._prefix = prefix + "_"
         return (True, "Prefix set")
-        
+
     def dumpdb(self):
         """
         return database as a mysql dump
         Note that this is no longer in use, but might come back later
         """
         import subprocess
-        
+
         if "Comment" in self.UserPriv or "Edit" not in self.UserPriv:
             return (False, "This user is not allowed dump database.")
         DumpCmd = ('mysqldump', '-u', dbuser, '--password={0}'.format(UserPassword), '--databases', dbname)
@@ -1147,7 +1148,7 @@ class Conformdb:
             return (False, "The call to mysqldump returned failure: {}".format(e))
         return (True, DatabaseAsMySQLText)
 
-        
+
 #########################################################################################################
 # test stub
 if __name__=="__main__":

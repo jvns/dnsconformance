@@ -1,0 +1,22 @@
+# mysql
+services:
+  db:
+    image: mysql:5.7
+    build:
+      dockerfile: Dockerfile.db
+      context: .
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: TheRootPasswordYouChose
+      MYSQL_DATABASE: dnsconf
+        #MYSQL_USER: dnsconf
+        #MYSQL_PASSWORD: NitPicky
+  dnsconformance:
+    # use dockerfile
+    build: .
+    ports: 
+    - "44317:44317"
+    - "44318:44318"
+
+
+

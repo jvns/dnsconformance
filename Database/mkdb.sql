@@ -3,8 +3,13 @@ DROP DATABASE IF EXISTS dnsconf;
 CREATE DATABASE dnsconf;
 USE dnsconf;
 
+DROP USER IF EXISTS 'dnsconf';
+DROP USER IF EXISTS 'dnsconf'@'localhost';
+DROP USER IF EXISTS 'dnscuser'@'localhost';
+DROP USER IF EXISTS 'dnscuser'@'localhost';
 CREATE USER 'dnsconf' IDENTIFIED BY 'NitPicky';
 CREATE USER 'dnsconf'@'localhost' IDENTIFIED BY 'NitPicky';
+CREATE USER 'dnscuser' IDENTIFIED BY 'NitPickier';
 CREATE USER 'dnscuser'@'localhost' IDENTIFIED BY 'NitPickier';
 
 GRANT ALL ON dnsconf.* to 'dnsconf';
@@ -31,7 +36,7 @@ CREATE TABLE basedoc (
 	bddstat ENUM('None','Active','Removed','Replaced') DEFAULT 'Active',
 	bduser VARCHAR(20) NOT NULL REFERENCES users(username),
 	bdupdated TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-	bdadded TIMESTAMP NOT NULL DEFAULT 0
+	bdadded TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE basedoc_history LIKE basedoc;
