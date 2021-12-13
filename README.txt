@@ -58,6 +58,15 @@ menu near the upper right with many commands, including "Help".
 
 ==========
 
+How to use Docker:
+
+1. docker-compose build
+2. docker-compose up
+3. bash load_db.sh
+3. visit http://localhost:44318 in your browser
+
+==========
+
 Add software for Ubuntu:
 
 	sudo apt-get update
